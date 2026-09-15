@@ -73,6 +73,62 @@ test("AI success and malformed response safely retain real evidence", async () =
     state = await page.evaluate(() => window.ghost.state());
     expect(state.analysisStatus).toContain("local results retained");
     expect(state.opportunities[0].engine).toBe("local");
+    await page.evaluate(async () => {
+      const s = await window.ghost.state();
+      await window.ghost.command("activate", {
+        id: s.opportunities[0].id,
+        trigger: "Every Friday",
+        steps: s.opportunities[0].steps,
+      });
+    });
+    await app.evaluate(() => {
+      globalThis.fetch = async () =>
+        new Response(
+          JSON.stringify({
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify({
+                    sections: [
+                      {
+                        title: "At a glance",
+                        items: [
+                          "The supplied metrics show an increase in visitors.",
+                        ],
+                      },
+                    ],
+                  }),
+                },
+              },
+            ],
+          }),
+          { status: 200 },
+        );
+    });
+    let drafted = await page.evaluate(async () => {
+      const s = await window.ghost.state();
+      return window.ghost.command("runAutomation", {
+        id: s.automations[0].id,
+        context: "Metric,Previous,Current\nVisitors,100,140",
+        ai: true,
+      });
+    });
+    expect(drafted.automations[0].report?.engine).toBe("ai");
+    expect(drafted.automations[0].report?.metrics[0].changePercent).toBe(40);
+    await app.evaluate(() => {
+      globalThis.fetch = async () =>
+        new Response("Service unavailable", { status: 503 });
+    });
+    drafted = await page.evaluate(async () => {
+      const s = await window.ghost.state();
+      return window.ghost.command("runAutomation", {
+        id: s.automations[0].id,
+        context: "Metric,Previous,Current\nVisitors,100,140",
+        ai: true,
+      });
+    });
+    expect(drafted.automations[0].report?.engine).toBe("local-fallback");
+    expect(drafted.automations[0].draft).toContain("+40.0%");
   } finally {
     await app.close();
     fs.rmSync(dir, { recursive: true, force: true });

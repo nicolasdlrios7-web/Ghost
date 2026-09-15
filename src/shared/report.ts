@@ -14,6 +14,7 @@ export interface Report {
   metrics: ReportMetric[];
   sections: ReportSection[];
   sourceLines: number;
+  sample: boolean;
   engine: "local" | "ai" | "local-fallback";
 }
 export interface ReportRun {
@@ -102,6 +103,7 @@ export function buildReport(title: string, context: string): Report {
     createdAt: Date.now(),
     metrics,
     sourceLines: context.split("\n").filter(Boolean).length,
+    sample: context.trim() === SAMPLE_CONTEXT.trim(),
     engine: "local",
     sections: [
       {
@@ -115,7 +117,7 @@ export function buildReport(title: string, context: string): Report {
 }
 export function reportMarkdown(report: Report): string {
   return (
-    `# ${report.title}\n\n${new Date(report.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} · Draft for review\n\n` +
+    `# ${report.title}\n\n${new Date(report.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} · ${report.sample ? "Sample data · " : ""}Draft for review\n\n` +
     (report.metrics.length
       ? "| Metric | Previous | Current | Change |\n| --- | ---: | ---: | ---: |\n" +
         report.metrics

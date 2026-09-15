@@ -227,9 +227,7 @@ export function ReportStudio({
                 <div className="paper-top">
                   <span>
                     GHOST /{" "}
-                    {current.opportunity.source === "demo"
-                      ? "SAMPLE REPORT"
-                      : "WORKSPACE REPORT"}
+                    {report.sample ? "SAMPLE REPORT" : "WORKSPACE REPORT"}
                   </span>
                   <span className="paper-status">DRAFT</span>
                 </div>
