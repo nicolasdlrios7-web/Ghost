@@ -3,7 +3,11 @@ import type { ActivityEvent, Opportunity } from "./types";
 export const hoursPerYear = (minutes: number) => (minutes * 52) / 60;
 export function sampleDay(): ActivityEvent[] {
   const events: ActivityEvent[] = [];
-  const base = Date.now() - 28 * 86400000;
+  const day = new Date();
+  const sinceFriday = (day.getDay() + 2) % 7 || (day.getHours() < 9 ? 7 : 0);
+  day.setDate(day.getDate() - sinceFriday - 21);
+  day.setHours(9, 0, 0, 0);
+  const base = day.getTime();
   const flows = [
     {
       apps: ["Chrome", "Mail", "Notion"],
