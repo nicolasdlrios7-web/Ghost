@@ -33,7 +33,7 @@ test("complete desktop demo, persistence, draft, privacy and reset", async () =>
   });
   await page.getByRole("button", { name: "View opportunity" }).click();
   await page.getByRole("button", { name: "See the evidence" }).click();
-  await expect(page.locator(".evidence-list>div")).toHaveCount(12);
+  await expect(page.locator(".evidence-chain>div")).toHaveCount(12);
   await page.waitForTimeout(350);
   await page.screenshot({
     animations: "disabled",
@@ -61,6 +61,10 @@ test("complete desktop demo, persistence, draft, privacy and reset", async () =>
   await page.getByRole("button", { name: "Inspect & run draft" }).click();
   await page.getByRole("button", { name: "Generate local draft" }).click();
   await expect(page.locator(".draft")).toContainText("12,480");
+  await page.screenshot({
+    animations: "disabled",
+    path: "docs/screenshots/06-report-studio.png",
+  });
   await page.getByRole("button", { name: "Close", exact: true }).click();
   await page.getByRole("button", { name: "Pause", exact: true }).click();
   await expect(page.getByText("PAUSED", { exact: true })).toBeVisible();

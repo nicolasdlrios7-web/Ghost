@@ -33,6 +33,14 @@ import "@fontsource/dm-sans/latin-400.css";
 import "@fontsource/dm-sans/latin-500.css";
 import "@fontsource/dm-sans/latin-600.css";
 import "./style.css";
+import "./upgrade.css";
+import { ReportStudio } from "./components/ReportStudio";
+import {
+  Rhythm,
+  EvidenceGroups,
+  DiscoveryProgress,
+  CommandPalette,
+} from "./components/Discovery";
 const nav = [
   ["Home", House],
   ["Opportunities", ScanLine],
@@ -103,8 +111,32 @@ function App() {
   const [key, setKey] = useState("");
   const [model, setModel] = useState("");
   const [inspect, setInspect] = useState<Automation>();
-  const [context, setContext] = useState("");
+  const [discovering, setDiscovering] = useState(false);
+  const [palette, setPalette] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setPalette((p) => !p);
+      }
+      if (e.key === "Escape") {
+        setPalette(false);
+        setSelected(undefined);
+        setInspect(undefined);
+        setConfirmDelete(false);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+  useEffect(() => {
+    document.body.style.overflow =
+      selected || inspect || palette || discovering ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [selected, inspect, palette, discovering]);
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [page]);
@@ -166,8 +198,16 @@ function App() {
   const potential = opportunities.reduce((n, o) => n + o.minutes, 0);
   const latest = opportunities[0];
   const analyze = async () => {
-    await act("analyze");
-    setPage("Opportunities");
+    setDiscovering(true);
+    try {
+      await Promise.all([
+        act("analyze"),
+        new Promise((resolve) => setTimeout(resolve, 1700)),
+      ]);
+      setPage("Opportunities");
+    } finally {
+      setDiscovering(false);
+    }
   };
   const loadDemo = async () => {
     await act("demo");
@@ -257,6 +297,9 @@ function App() {
               </div>
               <ChevronDown size={13} />
             </div>
+            <button className="quick-search" onClick={() => setPalette(true)}>
+              <ScanLine size={14} /> Quick actions <kbd>⌘ K</kbd>
+            </button>
             <nav>
               {nav.map(([label, Icon]) => (
                 <button
@@ -303,7 +346,7 @@ function App() {
                 <ArrowUpRight size={14} />
               </button>
               <div className="version">
-                GHOST <span>v1.0 · Preview</span>
+                GHOST <span>v1.1 · Preview</span>
               </div>
             </div>
           </aside>
@@ -336,7 +379,7 @@ function App() {
                 </button>
               </div>
             )}
-            <div className="content" key={page}>
+            <div className={"content page-" + page.toLowerCase()} key={page}>
               {page === "Home" && (
                 <>
                   <div className="page-heading">
@@ -390,117 +433,112 @@ function App() {
                     </h2>
                     {analyzeButton}
                   </div>
-                  {latest ? (
-                    <div className="hero-card">
-                      <div className="hero-card-top">
-                        <span className="small-label">
-                          <ScanLine size={15} /> A PATTERN WORTH BREAKING
-                        </span>
-                        <span className="confidence">
-                          <span className="dot" />
-                          {latest.confidence >= 0.85
-                            ? "High confidence"
-                            : "Possible pattern"}
-                        </span>
-                      </div>
-                      <div className="hero-card-body">
-                        <div>
-                          <h2>{latest.title}</h2>
-                          <p>
-                            Ghost recognized the same workflow across
-                            <br />
-                            {latest.recurrence} similar sessions.
-                          </p>
-                          <Sequence apps={latest.sequence} />
-                          <button
-                            className="primary"
-                            onClick={() => detail(latest)}
-                          >
-                            View opportunity <ArrowUpRight size={16} />
-                          </button>
-                        </div>
-                        <div className="saving">
-                          <span className="saving-number">
-                            {latest.minutes}
-                            <small>min</small>
+                  <div className="home-discovery-grid">
+                    {latest ? (
+                      <div className="hero-card">
+                        <div className="hero-card-top">
+                          <span className="small-label">
+                            <ScanLine size={15} /> A PATTERN WORTH BREAKING
                           </span>
-                          <span>potentially saved every week</span>
-                          <div className="annual">
-                            <ArrowUpRight size={16} /> ~
-                            {Math.round(hoursPerYear(latest.minutes))} hours a
-                            year, back to you.
+                          <span className="confidence">
+                            <span className="dot" />
+                            {latest.confidence >= 0.85
+                              ? "High confidence"
+                              : "Possible pattern"}
+                          </span>
+                        </div>
+                        <div className="hero-card-body">
+                          <div>
+                            <h2>{latest.title}</h2>
+                            <p>
+                              Ghost recognized the same workflow across
+                              <br />
+                              {latest.recurrence} similar sessions.
+                            </p>
+                            <Sequence apps={latest.sequence} />
+                            <button
+                              className="primary"
+                              onClick={() => detail(latest)}
+                            >
+                              View opportunity <ArrowUpRight size={16} />
+                            </button>
+                          </div>
+                          <div className="saving">
+                            <span className="saving-number">
+                              {latest.minutes}
+                              <small>min</small>
+                            </span>
+                            <span>potentially saved every week</span>
+                            <div className="annual">
+                              <ArrowUpRight size={16} /> ~
+                              {Math.round(hoursPerYear(latest.minutes))} hours a
+                              year, back to you.
+                            </div>
                           </div>
                         </div>
+                        <div className="card-footer">
+                          <Shield size={13} /> Based on{" "}
+                          {s.demo ? "sample" : "observed"} activity · Review the
+                          evidence. You’re always in control.
+                        </div>
                       </div>
-                      <div className="card-footer">
-                        <Shield size={13} /> Based on{" "}
-                        {s.demo ? "sample" : "observed"} activity · Review the
-                        evidence. You’re always in control.
+                    ) : (
+                      <div className="empty-discovery">
+                        <ScanLine size={27} />
+                        <h2>
+                          {events.length
+                            ? "Your workday has a story."
+                            : "Good work starts quietly."}
+                        </h2>
+                        <p>
+                          {events.length
+                            ? "Analyze the activity stream to find repeated workflows."
+                            : "Ghost will look for repeated app sequences as you work. Explore a sample workday to see it in action."}
+                        </p>
+                        {events.length ? (
+                          analyzeButton
+                        ) : (
+                          <button onClick={loadDemo}>
+                            Load sample workday <ArrowRight size={15} />
+                          </button>
+                        )}
                       </div>
-                    </div>
-                  ) : (
-                    <div className="empty-discovery">
-                      <ScanLine size={27} />
-                      <h2>
-                        {events.length
-                          ? "Your workday has a story."
-                          : "Good work starts quietly."}
-                      </h2>
-                      <p>
-                        {events.length
-                          ? "Analyze the activity stream to find repeated workflows."
-                          : "Ghost will look for repeated app sequences as you work. Explore a sample workday to see it in action."}
-                      </p>
-                      {events.length ? (
-                        analyzeButton
-                      ) : (
-                        <button onClick={loadDemo}>
-                          Load sample workday <ArrowRight size={15} />
-                        </button>
-                      )}
+                    )}
+                    <Rhythm
+                      events={events}
+                      opportunity={latest}
+                      onExplore={() =>
+                        latest ? detail(latest) : setPage("Activity")
+                      }
+                    />
+                  </div>
+                  {saved > 0 && (
+                    <div className="activated-strip">
+                      <span className="success-icon">
+                        <Check size={15} />
+                      </span>
+                      <div>
+                        <strong>
+                          {autos.filter((a) => a.active).length} workflow
+                          {autos.filter((a) => a.active).length === 1
+                            ? ""
+                            : "s"}{" "}
+                          ready to run
+                        </strong>
+                        <span>
+                          ~{Math.round(hoursPerYear(saved))} hours of annual
+                          potential. Your next draft is a click away.
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setInspect(autos.find((a) => a.active));
+                        }}
+                      >
+                        Prepare a report <ArrowRight size={14} />
+                      </button>
                     </div>
                   )}
-                  <div className="section-head activity-heading">
-                    <h2>
-                      {s.demo ? "Sample activity" : "Live activity"}{" "}
-                      <span className="dot muted" />
-                    </h2>
-                    <button
-                      className="text-button"
-                      onClick={() => setPage("Activity")}
-                    >
-                      View timeline <ArrowRight size={14} />
-                    </button>
-                  </div>
-                  <div className="recent">
-                    {events
-                      .slice(-3)
-                      .reverse()
-                      .map((e) => (
-                        <div className="recent-row" key={e.id}>
-                          <AppIcon app={e.app} />
-                          <div>
-                            {e.app}
-                            <small>
-                              {e.windowTitle || "Application activity"}
-                            </small>
-                          </div>
-                          <span>{duration(e.durationSeconds)}</span>
-                          <time>
-                            {new Date(e.startedAt).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </time>
-                        </div>
-                      ))}
-                    {!events.length && (
-                      <p className="subtle">
-                        {s.observationStatus}. Your next app session will appear
-                        here.
-                      </p>
-                    )}
-                  </div>
                 </>
               )}
               {page === "Opportunities" && (
@@ -711,18 +749,16 @@ function App() {
                               ? new Date(a.lastRun).toLocaleString()
                               : "Not run yet"}
                           </strong>
-                          <small>Last draft generated</small>
+                          <small>
+                            {a.runs?.length || 0} completed runs · Last draft
+                            generated
+                          </small>
                         </div>
                       </div>
                       <div className="button-group">
                         <button
                           onClick={() => {
                             setInspect(a);
-                            setContext(
-                              a.opportunity.source === "demo"
-                                ? "Weekly sample metrics: 12,480 visitors (+14%). 386 signups (+9%). Customer updates: onboarding improvements shipped; two customers requested CSV export. Next week: validate onboarding conversion."
-                                : "",
-                            );
                           }}
                         >
                           <Play size={14} /> Inspect & run draft
@@ -1105,23 +1141,7 @@ function App() {
                   <ChevronDown size={17} />
                 </button>
                 {evidence && (
-                  <div className="evidence-list">
-                    {s.events
-                      .filter((e) => selected.evidenceIds.includes(e.id))
-                      .map((e) => (
-                        <div key={e.id}>
-                          <time>
-                            {new Date(e.startedAt).toLocaleDateString([], {
-                              month: "short",
-                              day: "numeric",
-                            })}
-                          </time>
-                          <AppIcon app={e.app} />
-                          <span>{e.windowTitle || e.app}</span>
-                          <small>{duration(e.durationSeconds)}</small>
-                        </div>
-                      ))}
-                  </div>
+                  <EvidenceGroups events={s.events} opportunity={selected} />
                 )}
                 <div className="explanation">
                   <h3>Ghost can help with this.</h3>
@@ -1139,10 +1159,18 @@ function App() {
                   </ul>
                 </div>
                 <div className="estimate-note">
-                  {Math.round(selected.confidence * 100)}% pattern confidence ·
-                  Savings are estimates based on repeated sessions, assuming one
-                  run per week. App activity suggests a pattern; it doesn’t
-                  prove the task performed.
+                  Average observed sequence:{" "}
+                  {Math.round(
+                    s.events
+                      .filter((e) => selected.evidenceIds.includes(e.id))
+                      .reduce((n, e) => n + e.durationSeconds, 0) /
+                      Math.max(selected.recurrence, 1) /
+                      60,
+                  )}{" "}
+                  minutes. {Math.round(selected.confidence * 100)}% pattern
+                  confidence · Savings are estimates based on repeated sessions,
+                  assuming one run per week. App activity suggests a pattern; it
+                  doesn’t prove the task performed.
                 </div>
                 <div className="modal-actions">
                   <button
@@ -1169,73 +1197,21 @@ function App() {
         </div>
       )}
       {inspect && (
-        <div className="modal-backdrop">
-          <section className="modal">
-            <button
-              className="close icon-button"
-              aria-label="Close"
-              onClick={() => setInspect(undefined)}
-            >
-              <X size={20} />
-            </button>
-            <div className="eyebrow">MANUAL DRAFT RUN</div>
-            <h1>{inspect.opportunity.title}</h1>
-            <p>
-              Supply the source material. Ghost prepares a local report draft
-              for your review.
-            </p>
-            <ol className="inspect-steps">
-              {inspect.steps.map((step, i) => (
-                <li key={i}>{step}</li>
-              ))}
-            </ol>
-            <label>
-              Source context{" "}
-              {inspect.opportunity.source === "demo" && (
-                <span className="badge">SAMPLE CONTENT</span>
-              )}
-            </label>
-            <textarea
-              aria-label="Source context"
-              value={context}
-              onChange={(e) => setContext(e.target.value)}
-              placeholder="Paste metrics and relevant updates…"
-            />
-            <button
-              className="primary"
-              disabled={!context.trim() || !inspect.active || busy}
-              onClick={async () => {
-                const next = await act("runAutomation", {
-                  id: inspect.id,
-                  context,
-                });
-                if (next)
-                  setInspect(next.automations.find((a) => a.id === inspect.id));
-              }}
-            >
-              Generate local draft <FileText size={16} />
-            </button>
-            {inspect.draft && (
-              <>
-                <h3>Draft ready · review before sharing</h3>
-                <pre className="draft">{inspect.draft}</pre>
-                <button
-                  onClick={() =>
-                    navigator.clipboard
-                      .writeText(inspect.draft || "")
-                      .catch(() =>
-                        setError(
-                          "Clipboard unavailable; select and copy the draft.",
-                        ),
-                      )
-                  }
-                >
-                  Copy draft
-                </button>
-              </>
-            )}
-          </section>
-        </div>
+        <ReportStudio
+          automation={inspect}
+          state={s}
+          act={act}
+          close={() => setInspect(undefined)}
+        />
+      )}
+      {discovering && <DiscoveryProgress count={events.length} />}
+      {palette && (
+        <CommandPalette
+          close={() => setPalette(false)}
+          navigate={setPage}
+          analyze={analyze}
+          demo={loadDemo}
+        />
       )}
       {confirmDelete && (
         <div className="modal-backdrop">

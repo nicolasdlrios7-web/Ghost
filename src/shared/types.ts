@@ -1,3 +1,4 @@
+import type { Report, ReportRun } from "./report";
 export interface ActivityEvent {
   id: string;
   app: string;
@@ -28,6 +29,8 @@ export interface Automation {
   steps: string[];
   lastRun?: number;
   draft?: string;
+  report?: Report;
+  runs?: ReportRun[];
 }
 export interface Settings {
   onboarding: boolean;
@@ -47,6 +50,7 @@ export interface State {
   observationStatus: string;
   analysisStatus: string;
   analyzedPatterns: number;
+  dismissed: string[];
 }
 export type Command =
   | "start"
@@ -63,6 +67,8 @@ export type Command =
 export interface GhostAPI {
   state: () => Promise<State>;
   command: (command: Command, payload?: unknown) => Promise<State>;
+  importContext: () => Promise<{ name: string; text: string } | null>;
+  exportReport: (id: string, runId?: string) => Promise<string | null>;
 }
 declare global {
   interface Window {

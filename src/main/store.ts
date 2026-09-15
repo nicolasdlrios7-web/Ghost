@@ -11,6 +11,7 @@ export const freshState = (): State => ({
     hasKey: false,
     launchAtLogin: false,
   },
+  dismissed: [],
   events: [],
   opportunities: [],
   automations: [],
