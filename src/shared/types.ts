@@ -63,6 +63,8 @@ export type Command =
   | "toggleAutomation"
   | "deleteAutomation"
   | "runAutomation"
+  | "saveReport"
+  | "reviewReport"
   | "dismiss";
 export interface GhostAPI {
   state: () => Promise<State>;

@@ -15,6 +15,7 @@ export interface Report {
   sections: ReportSection[];
   sourceLines: number;
   sample: boolean;
+  reviewedAt?: number;
   engine: "local" | "ai" | "local-fallback";
 }
 export interface ReportRun {
@@ -117,7 +118,7 @@ export function buildReport(title: string, context: string): Report {
 }
 export function reportMarkdown(report: Report): string {
   return (
-    `# ${report.title}\n\n${new Date(report.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} · ${report.sample ? "Sample data · " : ""}Draft for review\n\n` +
+    `# ${report.title}\n\n${new Date(report.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} · ${report.sample ? "Sample data · " : ""}${report.reviewedAt ? "Reviewed" : "Draft for review"}\n\n` +
     (report.metrics.length
       ? "| Metric | Previous | Current | Change |\n| --- | ---: | ---: | ---: |\n" +
         report.metrics

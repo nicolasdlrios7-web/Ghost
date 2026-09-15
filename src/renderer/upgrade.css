@@ -1056,3 +1056,33 @@ kbd {
     font-size: 23px;
   }
 }
+.report-reviewbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 16px;
+  gap: 10px;
+}
+.report-reviewbar > span {
+  font-size: 7px;
+  letter-spacing: 1.3px;
+  color: #6387a1;
+}
+.report-reviewbar button {
+  font-size: 9px;
+  padding: 6px 8px;
+  background: #1a2a38;
+  border-color: #2c465a;
+  color: #94b8d1;
+}
+.report-paper .report-edit {
+  background: #e2e8e1;
+  color: #395146;
+  border-color: #b4c7b9;
+  font-family: "DM Sans", sans-serif;
+  font-size: 10px;
+  line-height: 1.8;
+  height: 130px;
+  margin: 0;
+  white-space: pre-wrap;
+}

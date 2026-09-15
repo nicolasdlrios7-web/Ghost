@@ -10,6 +10,7 @@ import {
   Shield,
   Sparkles,
   Clock,
+  Pencil,
   ArrowUpRight,
 } from "lucide-react";
 import type { Automation, State, Command } from "../../shared/types";
@@ -34,6 +35,35 @@ export function ReportStudio({
   const [runId, setRunId] = useState("");
   const [error, setError] = useState("");
   const [imported, setImported] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [edited, setEdited] = useState<string[]>([]);
+  async function updateReport(command: "saveReport" | "reviewReport") {
+    const next = await act(command, {
+      id: current.id,
+      runId: runId || undefined,
+      ...(command === "saveReport"
+        ? {
+            sections: report?.sections.map((section, i) => ({
+              ...section,
+              items: edited[i]
+                .split("\n")
+                .map((s) => s.trim())
+                .filter(Boolean),
+            })),
+          }
+        : {}),
+    });
+    const updated = next?.automations.find((a) => a.id === current.id);
+    if (updated) {
+      setCurrent(updated);
+      setEditing(false);
+      setNotice(
+        command === "saveReport"
+          ? "Changes saved. Review the updated draft."
+          : "Marked as reviewed. Ready to export.",
+      );
+    }
+  }
   const historic = current.runs?.find((r) => r.id === runId);
   const report = historic?.report || current.report;
   const draft = historic?.markdown || current.draft;
@@ -75,7 +105,10 @@ export function ReportStudio({
               <select
                 aria-label="Report run history"
                 value={runId}
-                onChange={(e) => setRunId(e.target.value)}
+                onChange={(e) => {
+                  setRunId(e.target.value);
+                  setEditing(false);
+                }}
               >
                 <option value="">Latest draft</option>
                 {current.runs.map((r, i) => (
@@ -111,14 +144,17 @@ export function ReportStudio({
                     ? "sample-weekly-metrics.csv"
                     : "Your source context")}
                 <small>
-                  {current.opportunity.source === "demo"
-                    ? "SAMPLE · EDITABLE"
-                    : "LOCAL · NEVER FETCHED AUTOMATICALLY"}
+                  {imported
+                    ? "IMPORTED · LOCAL"
+                    : current.opportunity.source === "demo"
+                      ? "SAMPLE · EDITABLE"
+                      : "LOCAL · NEVER FETCHED AUTOMATICALLY"}
                 </small>
               </div>
             </div>
             <textarea
               aria-label="Source context"
+              readOnly={working}
               value={context}
               onChange={(e) => setContext(e.target.value)}
               placeholder={
@@ -222,6 +258,46 @@ export function ReportStudio({
                 </button>
               </div>
             </div>
+            {report && (
+              <div className="report-reviewbar">
+                <span>
+                  {report.reviewedAt
+                    ? "Reviewed by you"
+                    : "YOUR REVIEW IS THE FINAL STEP"}
+                </span>
+                <div className="button-group">
+                  {editing ? (
+                    <>
+                      <button onClick={() => setEditing(false)}>Cancel</button>
+                      <button onClick={() => updateReport("saveReport")}>
+                        Save changes
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        disabled={working}
+                        onClick={() => {
+                          setEdited(
+                            report.sections.map((s) => s.items.join("\n")),
+                          );
+                          setEditing(true);
+                        }}
+                      >
+                        <Pencil size={12} /> Edit draft
+                      </button>
+                      <button
+                        disabled={working || !!report.reviewedAt}
+                        onClick={() => updateReport("reviewReport")}
+                      >
+                        <Check size={12} />
+                        {report.reviewedAt ? "Reviewed" : "Mark reviewed"}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
             {report ? (
               <article className="report-paper draft">
                 <div className="paper-top">
@@ -229,7 +305,9 @@ export function ReportStudio({
                     GHOST /{" "}
                     {report.sample ? "SAMPLE REPORT" : "WORKSPACE REPORT"}
                   </span>
-                  <span className="paper-status">DRAFT</span>
+                  <span className="paper-status">
+                    {report.reviewedAt ? "REVIEWED" : "DRAFT"}
+                  </span>
                 </div>
                 <h1>{report.title}</h1>
                 <p className="paper-date">
@@ -265,7 +343,20 @@ export function ReportStudio({
                 {report.sections.map((section, i) => (
                   <section className="report-section" key={i}>
                     <h3>{section.title}</h3>
-                    {section.items.length ? (
+                    {editing ? (
+                      <textarea
+                        className="report-edit"
+                        aria-label={`Edit ${section.title}`}
+                        value={edited[i]}
+                        onChange={(e) =>
+                          setEdited(
+                            edited.map((s, k) =>
+                              k === i ? e.target.value : s,
+                            ),
+                          )
+                        }
+                      />
+                    ) : section.items.length ? (
                       <ul>
                         {section.items.map((item, j) => (
                           <li key={j}>{item}</li>

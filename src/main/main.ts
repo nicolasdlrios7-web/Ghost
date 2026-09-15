@@ -373,6 +373,46 @@ app.whenReady().then(() => {
             (o) => o.id !== payload,
           );
           break;
+        case "saveReport":
+        case "reviewReport": {
+          const p = z
+            .object({
+              id: z.string(),
+              runId: z.string().optional(),
+              sections: z
+                .array(
+                  z
+                    .object({
+                      title: z.string().min(1).max(80),
+                      items: z.array(z.string().max(1000)).max(30),
+                    })
+                    .strict(),
+                )
+                .min(1)
+                .max(5)
+                .optional(),
+            })
+            .strict()
+            .parse(payload);
+          const a = store.state.automations.find((a) => a.id === p.id);
+          const run = p.runId
+            ? a?.runs?.find((r) => r.id === p.runId)
+            : a?.runs?.[0];
+          if (!a || !run) throw Error("Report no longer exists.");
+          if (command === "saveReport") {
+            if (!p.sections) throw Error("Report content required.");
+            run.report.sections = p.sections;
+            delete run.report.reviewedAt;
+          } else {
+            run.report.reviewedAt = Date.now();
+          }
+          run.markdown = reportMarkdown(run.report);
+          if (run.id === a.runs?.[0].id) {
+            a.report = run.report;
+            a.draft = run.markdown;
+          }
+          break;
+        }
         case "runAutomation": {
           const p = z
             .object({
