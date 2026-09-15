@@ -398,7 +398,9 @@ function App() {
                         </span>
                         <span className="confidence">
                           <span className="dot" />
-                          High confidence
+                          {latest.confidence >= 0.85
+                            ? "High confidence"
+                            : "Possible pattern"}
                         </span>
                       </div>
                       <div className="hero-card-body">
