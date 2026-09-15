@@ -1,0 +1,11 @@
+import sharp from 'sharp';
+import fs from 'node:fs';
+import {execFileSync} from 'node:child_process';
+const symbol=`<path d="M 706 313 A 265 265 0 1 0 774 550" fill="none" stroke="#ddf4ff" stroke-width="39" stroke-linecap="round"/><path d="M 391 608 A 155 155 0 1 0 421 376" fill="none" stroke="#84bdd7" stroke-width="18" stroke-linecap="round"/><circle cx="752" cy="381" r="23" fill="#d8f4ff"/>`;
+const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024"><rect x="62" y="62" width="900" height="900" rx="215" fill="#111b25"/><rect x="64" y="64" width="896" height="896" rx="213" fill="none" stroke="#355164" stroke-width="4"/>${symbol}</svg>`;
+fs.writeFileSync('build/icon.svg',svg);fs.mkdirSync('build/icon.iconset',{recursive:true});
+for(const n of [16,32,128,256,512])for(const scale of [1,2])await sharp(Buffer.from(svg)).resize(n*scale).png().toFile(`build/icon.iconset/icon_${n}x${n}${scale===2?'@2x':''}.png`);
+execFileSync('iconutil',['-c','icns','build/icon.iconset','-o','build/icon.icns']);
+const tray=`<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="180 180 664 664">${symbol.replaceAll('#ddf4ff','#000').replaceAll('#84bdd7','#000').replaceAll('#d8f4ff','#000')}</svg>`;
+await sharp(Buffer.from(tray)).resize(36).png().toFile('build/trayTemplate@2x.png');await sharp(Buffer.from(tray)).resize(18).png().toFile('build/trayTemplate.png');
+fs.rmSync('build/icon.iconset',{recursive:true});
